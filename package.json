@@ -8,7 +8,8 @@
   "scripts": {
     "web": "node scripts/copiar-web.mjs",
     "sync": "npm run web && cap sync android",
-    "android": "npm run sync && cap open android"
+    "android": "npm run sync && cap open android",
+    "apk": "bash scripts/build-apk.sh"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",

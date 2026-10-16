@@ -2,18 +2,26 @@
 
 O PWA `../stk-desp-firebase-google/src` (v2.6.3) empacotado como app Android, **sem mudar uma linha do PWA**.
 
+## Baixar o APK no celular
+
+**[Baixar a última versão](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases/latest/download/financas-casa-capacitor.apk)**: abra este link no navegador do Android, baixe e toque no arquivo. Na primeira vez, o Android pede para permitir a instalação de apps de fontes desconhecidas. Versões anteriores ficam em [Releases](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases).
+
+O APK é de teste (build debug), assinado com a chave de debug da máquina de build: as atualizações instalam por cima enquanto forem geradas na mesma máquina.
+
+## Desenvolvimento e build (local)
+
+Tudo roda na máquina local; o repositório guarda o código e publica o APK em Releases.
+
 ```bash
-npm run web      # copia o PWA para www/ (sem componentes.html); rode a cada versão nova do PWA
-npm run sync     # web + cap sync android (precisa Node 22+)
+npm run web          # copia o PWA para www/ (sem componentes.html); rode a cada versão nova do PWA
+npm run sync         # web + cap sync android
+npm run apk          # build completo: dist/financas-casa-capacitor.apk
+scripts/publicar-apk.sh v2.6.3   # cria a Release com o APK (precisa do gh logado)
 ```
 
-O APK sai pelo GitHub Actions do repo **privado** `financas-casa` (workflow `apk-capacitor.yml`, artefato `financas-casa-capacitor-apk`), porque a máquina local não tem Android SDK e o Capacitor 8 pede Node 22+.
+Requisitos: Node 22+ (o script usa o `nvm` se houver), JDK 21 e Android SDK em `~/Android/Sdk` (ou `ANDROID_HOME`), com `platforms;android-36` e `build-tools;36.0.0`.
 
-### `www/` fora do git
-
-O PWA vem do repositório privado `financas-casa`, então `www/` não é versionado aqui. Local: `npm run web` gera a pasta a partir de `../stk-desp-firebase-google/src`.
-
-O build roda no repo privado porque o APK leva o PWA inteiro: num repo público, o artefato poderia ser baixado por qualquer pessoa. Lá, o workflow baixa este repo (público, sem token), roda `npm run web` e compila. Ele dispara a cada push em `src/` do PWA ou manualmente (*Actions → APK · Capacitor → Run workflow*). Mudou só este repo? Rode manualmente.
+`www/` e `android/` não são versionados: o PWA vem de `../stk-desp-firebase-google/src` (repo privado `financas-casa`) e o projeto Android é gerado pelo Capacitor.
 
 ## Antes de testar
 
