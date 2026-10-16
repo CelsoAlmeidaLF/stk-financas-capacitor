@@ -1,0 +1,810 @@
+--- a/index.html
++++ b/index.html
+@@ -3,7 +3,7 @@
+ <head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self'">
++<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'">
+ <meta name="referrer" content="no-referrer">
+ <meta name="theme-color" content="#DCEDE3" id="metaTheme">
+ <title>Finanças da Casa</title>
+@@ -22,11 +22,7 @@
+ <link rel="stylesheet" href="fonts/fonts.css">
+ <link rel="stylesheet" href="stk-pkg-secure-ui.css">
+ <link rel="stylesheet" href="aero-fin.css">
+-<script src="stk-pkg-financ-icons.js"></script>
+-<script src="stk-pkg-secure-vault.js"></script>
+-<script src="stk-pkg-secure-ui.js" defer></script>
+-<script src="stk-pkg-qrcode.js" defer></script>
+-<script type="module" src="js/app.js"></script>
++<script src="local/boot.js" data-scripts='[{"src":"stk-pkg-financ-icons.js","module":false},{"src":"stk-pkg-secure-vault.js","module":false},{"src":"stk-pkg-secure-ui.js","module":false},{"src":"stk-pkg-qrcode.js","module":false},{"src":"js/app.js","module":true}]'></script>
+ </head>
+ <body>
+ <div class="sky" aria-hidden="true"></div>
+@@ -48,49 +44,10 @@
+   </header>
+ 
+   <!-- carregando -->
+-  <section id="scrBoot"><div class="glass empty">Conectando…</div></section>
++  <section id="scrBoot"><div class="glass empty">Abrindo…</div></section>
+ 
+-  <!-- trocar projeto Firebase (DEV com outro projeto) -->
+-  <section id="scrConfig" hidden>
+-    <h2 class="title">Conectar ao Firebase</h2>
+-    <div class="glass pad">
+-      <p class="lede">Cole o objeto <span class="num">firebaseConfig</span> do console (Configurações do projeto → Seus apps). Fica salvo só neste aparelho.</p>
+-      <label class="f">Configuração<textarea id="cfgInput"></textarea></label>
+-      <button class="btn" id="cfgSave">Salvar e conectar</button>
+-      <button class="btn ghost" id="cfgDefault">Voltar ao projeto padrão</button>
+-      <div class="msg" id="cfgMsg" role="status"></div>
+-    </div>
+-  </section>
+ 
+-  <!-- login: sem cadastro público -->
+-  <section id="scrAuth" hidden>
+-    <h2 class="title">Entrar</h2>
+-    <form class="glass pad" id="loginForm" novalidate>
+-      <div id="loginCampos">
+-        <label class="f" style="margin-top:0">E-mail<input id="authEmail" type="email" autocomplete="username" inputmode="email" required></label>
+-        <label class="f">Senha<input id="authPass" type="password" autocomplete="current-password" required></label>
+-      </div>
+-      <div id="mfaCampos" hidden>
+-        <p class="lede">Abra o app autenticador (Proton Pass) e digite o código de 6 números de <b>Finanças da Casa</b>.</p>
+-        <label class="f">Código de verificação<input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"></label>
+-      </div>
+-      <button class="btn" id="authGo" type="submit">Entrar</button>
+-      <div class="msg" id="authMsg" role="status"></div>
+-    </form>
+-    <div class="sec-h"><button class="link" id="forgot" type="button">Esqueci minha senha</button><button class="link" id="cfgOpen" type="button">Projeto Firebase</button></div>
+-    <div class="sec-h" style="margin-top:20px; justify-content:center"><button class="btn ghost" id="authConvite" type="button">Fui convidado para uma casa</button></div>
+-  </section>
+ 
+-  <!-- logado, mas sem casa liberada -->
+-  <section id="scrSemCasa" hidden>
+-    <h2 class="title">Quase lá</h2>
+-    <div class="glass pad">
+-      <p class="lede" id="semCasaMsg">Peça ao administrador para incluir você na casa. Se ele pedir, envie este código:</p>
+-      <div class="code" id="meuUid"></div>
+-      <button class="btn ghost" id="copyUid">Copiar código</button>
+-    </div>
+-    <div class="sec-h"><span></span><button class="link" data-logout>Sair da conta</button></div>
+-  </section>
+ 
+   <!-- administrador: criar a casa ou ativar a criptografia da casa antiga -->
+   <section id="scrSetup" hidden>
+@@ -100,11 +57,10 @@
+       <label class="f" id="setupNomeWrap">Nome da casa<input id="setupNome" placeholder="Ex.: Casa Almeida" maxlength="60"></label>
+       <div id="setupPalavras"></div>
+       <label class="ck"><input type="checkbox" id="setupOk"> Anotei as 12 palavras em papel ou no Proton Pass</label>
+-      <p class="note">Passe as palavras <b>ou</b> a hash para sua esposa <b>pessoalmente</b>. Ela digita uma única vez no celular dela. O selo pode ser mostrado sem risco: serve só para conferir.</p>
++      <p class="note">Guarde as palavras <b>ou</b> a hash fora do celular: são elas que abrem o backup num aparelho novo. O selo pode ser mostrado sem risco: serve só para conferir.</p>
+       <button class="btn" type="submit" id="setupGo">Proteger e continuar</button>
+       <div class="msg" id="setupMsg" role="status"></div>
+     </form>
+-    <div class="sec-h"><span></span><button class="link" data-logout>Sair da conta</button></div>
+   </section>
+ 
+   <!-- código de recuperação (mostrado uma vez) -->
+@@ -205,15 +161,6 @@
+       <h2 class="title">Casa</h2>
+       <div class="sec-h" style="margin-top:0"><b>Pessoas</b><span class="hint" id="papel"></span></div>
+       <div class="glass flat list" id="pessoas"></div>
+-      <div id="adminPessoas" hidden>
+-        <button class="btn" id="addPessoaConvite" style="margin-bottom:10px">Gerar link de convite</button>
+-        <div class="sec-h"><button class="btn ghost" id="addPessoa">Criar pessoa</button><button class="btn ghost" id="addPessoaUid">Por código UID</button></div>
+-
+-        <div class="sec-h"><b>Códigos de acesso</b><span class="hint" id="convitesN"></span></div>
+-        <div class="glass flat list" id="convites"></div>
+-        <div class="sec-h"><button class="btn ghost" id="novoConvite">Gerar novo código</button><button class="btn ghost" id="limparConvites">Limpar usados e vencidos</button></div>
+-      </div>
+-
+       <div class="sec-h"><b>Segurança</b></div>
+       <div class="glass flat list" id="seguranca"></div>
+ 
+@@ -223,19 +170,8 @@
+         <div class="seg two" id="segPal" style="margin-top:10px"><span class="ind"></span><button aria-pressed="true" data-p="fin">Financeira</button><button aria-pressed="false" data-p="aero">Aero azul</button></div>
+       </div>
+ 
+-      <div id="adminDados" hidden>
+-        <div class="sec-h"><b>Dados antigos</b><span class="hint" id="legadoN"></span></div>
+-        <div class="glass pad">
+-          <p class="lede" style="margin:0">Despesas lançadas na versão anterior, ainda <b>sem criptografia</b>.</p>
+-          <button class="btn" id="migrar">Migrar e criptografar</button>
+-          <button class="btn danger" id="apagarLegado">Apagar sem migrar</button>
+-        </div>
+-      </div>
+-
+       <div class="sec-h"><b>App</b></div>
+       <div class="glass flat list" id="appInfo"></div>
+-      <button class="btn danger" data-logout>Sair da conta</button>
+-      <p class="note">Ao sair, este aparelho esquece a chave da casa: para voltar, digite as palavras ou a hash da casa de novo.</p>
+     </section>
+   </section>
+ </div>
+--- a/js/app.js
++++ b/js/app.js
+@@ -1,18 +1,10 @@
+ /* Finanças da Casa · app
+-   Ordem de abertura: PIN/biometria (cofre local) → login Firebase (+2FA) → chave da casa (12 palavras ou hash, 1x por aparelho) → app. */
++   Edição local do APK: dados num banco SQLite no aparelho, sem servidor e sem armazenamento do navegador.
++   Ordem de abertura: PIN (cofre local) → chave da casa (12 palavras ou hash, 1x por aparelho) → app. */
+ import * as M from './modelo.js';
+ import * as C from './cripto-casa.js';
+ 
+-const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
+-const CFG_KEY = 'financasCasa.firebaseConfig', MODE_KEY = 'financasCasa.mode', PAL_KEY = 'financasCasa.pal';
+-const DEFAULT_CONFIG = {
+-  apiKey: 'AIzaSyC75aSutWKpkdVJIeYWJY_bQh8GpCsPLVA',
+-  authDomain: 'despesas-c5198.firebaseapp.com',
+-  projectId: 'despesas-c5198',
+-  storageBucket: 'despesas-c5198.firebasestorage.app',
+-  messagingSenderId: '660623395237',
+-  appId: '1:660623395237:web:2d652f12b385af853e004c'
+-};
++const MODE_KEY = 'financasCasa.mode', PAL_KEY = 'financasCasa.pal';
+ const APP_NOME = 'Finanças da Casa';
+ 
+ const root = document.documentElement;
+@@ -21,17 +13,12 @@
+ const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+ const setMsg = (el, text, kind = '') => { el.textContent = text; el.className = 'msg ' + kind; };
+ const store = {
+-  get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+-  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+-  del: k => { try { localStorage.removeItem(k); } catch {} }
++  get: k => window.stkArmazem.getItem(k),
++  set: (k, v) => window.stkArmazem.setItem(k, v),
++  del: k => window.stkArmazem.removeItem(k)
+ };
+ const buzz = n => { try { navigator.vibrate && navigator.vibrate(n); } catch {} };
+ 
+-/* Instalação (PWA): o evento chega cedo, antes do PIN. */
+-let instalar = null;
+-addEventListener('beforeinstallprompt', e => { e.preventDefault(); instalar = e; });
+-addEventListener('appinstalled', () => { instalar = null; });
+-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+ 
+ /* ======================= modo, paleta, avisos ======================= */
+ let pref = store.get(MODE_KEY) || 'ambient';
+@@ -97,22 +84,20 @@
+ let avisoCartao = null;
+ function atualizarIlha() {
+   const pend = Object.values(pendentes).some(Boolean);
+-  const s = !navigator.onLine ? 'off' : pend ? 'sync' : 'ok';
++  const s = pend ? 'sync' : 'ok';
+   const isl = $('island'); isl.dataset.state = s;
+-  let t = '', v = '', d = 'Tudo sincronizado e cifrado de ponta a ponta.';
+-  if (s === 'off') { t = 'Offline'; v = ''; d = 'Os lançamentos ficam cifrados neste aparelho e sobem quando a internet voltar.'; }
+-  else if (s === 'sync') { t = 'Sincronizando…'; d = 'Há lançamentos esperando o servidor.'; }
++  let t = '', v = '', d = 'Tudo salvo e cifrado neste aparelho.';
++  if (s === 'sync') { t = 'Salvando…'; d = 'Gravando no banco do aparelho.'; }
+   else if (avisoCartao) { t = avisoCartao.t; v = avisoCartao.v; d = avisoCartao.d; }
+   $('islandT').textContent = t; $('islandV').textContent = v; $('islandD').textContent = d;
+   isl.hidden = !t;
+ }
+-addEventListener('online', atualizarIlha); addEventListener('offline', atualizarIlha);
+ function alternarIlha() { const o = $('island').classList.toggle('open'); $('island').setAttribute('aria-expanded', o); buzz(8); }
+ $('island').onclick = alternarIlha;
+ $('island').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); alternarIlha(); } };
+ 
+ /* ======================= telas, navegação, folha ======================= */
+-const TELAS = ['scrBoot', 'scrConfig', 'scrAuth', 'scrSemCasa', 'scrSetup', 'scrCodigo', 'scrFrase', 'scrApp'];
++const TELAS = ['scrBoot', 'scrSetup', 'scrCodigo', 'scrFrase', 'scrApp'];
+ function mostrar(id) {
+   TELAS.forEach(s => $(s).hidden = s !== id);
+   const noApp = id === 'scrApp';
+@@ -127,7 +112,7 @@
+   document.querySelectorAll('.dock [data-go]').forEach(b => b.dataset.go === v ? b.setAttribute('aria-current', 'true') : b.removeAttribute('aria-current'));
+   $('monthNav').hidden = v === 'plan' || v === 'casa';
+   scrollTo({ top: 0, behavior: RM ? 'auto' : 'smooth' });
+-  if (v === 'casa') { renderCasa(); carregarConvites(); }
++  if (v === 'casa') renderCasa();
+   animarBarras($('v-' + v));
+ }
+ document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b && !$('scrApp').hidden) go(b.dataset.go); });
+@@ -265,109 +250,33 @@
+ const ICON_CARTAO = '<svg class="i" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>';
+ const PESSOA_COR = ['var(--accent)', 'var(--p2)', 'var(--warn)', 'var(--out)'];
+ 
+-/* ======================= Firebase e sessão ======================= */
+-function lerConfig() { try { return JSON.parse(localStorage.getItem(CFG_KEY)); } catch { return null; } }
+-function parseConfig(raw) {
+-  const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
+-  if (a < 0 || b < 0) throw new Error('Não encontrei um objeto { … } no texto.');
+-  let s = raw.slice(a, b + 1);
+-  try { return JSON.parse(s); } catch {}
+-  s = s.replace(/'/g, '"').replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":').replace(/,\s*}/g, '}');
+-  return JSON.parse(s);
+-}
+-$('cfgOpen').onclick = () => { $('cfgInput').value = JSON.stringify(lerConfig() || DEFAULT_CONFIG, null, 2); mostrar('scrConfig'); };
+-$('cfgSave').onclick = () => {
+-  try {
+-    const cfg = parseConfig($('cfgInput').value);
+-    if (!cfg.apiKey || !cfg.projectId || !cfg.authDomain) throw new Error('Faltam apiKey, authDomain ou projectId.');
+-    localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); location.reload();
+-  } catch (e) { setMsg($('cfgMsg'), 'Config inválida: ' + e.message, 'err'); }
+-};
+-$('cfgDefault').onclick = () => { store.del(CFG_KEY); location.reload(); };
++/* ======================= banco local e sessão ======================= */
+ 
+ await window.vaultReady;               // só segue depois do PIN/biometria
+ const cofre = window.secureStorage;
+-const config = lerConfig() || DEFAULT_CONFIG;
+ 
+-let A, F, fbApp, auth, db, deleteApp, initializeApp;
+-let user = null, perfil = null, casaId = null, casa = null, chave = null, souAdminApp = false;
++let A, F, auth, db;
++let user = null, perfil = null, casaId = null, casa = null, chave = null;
+ let mesVista = M.mesDe(M.hojeISO());
+ const dados = { lancamentos: [], compras: [], cartoes: [], dividas: [], investimentos: [], metas: [] };
+ const subs = {}, seqs = {}, cacheDec = new Map();
+-let cartaoSel = null, planoSel = 'metas', filtro = 'all', pessoaFiltro = 'all', busca = '', legadoN = 0;
++let cartaoSel = null, planoSel = 'metas', filtro = 'all', pessoaFiltro = 'all', busca = '';
+ 
+ try {
+-  ({ initializeApp, deleteApp } = await import(FB + 'firebase-app.js'));
+-  A = await import(FB + 'firebase-auth.js');
+-  F = await import(FB + 'firebase-firestore.js');
+-  fbApp = initializeApp(config);
+-  auth = A.getAuth(fbApp);
+-  auth.languageCode = 'pt-BR';
+-  db = F.initializeFirestore(fbApp, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) });
++  // Porta de dados local (SQLite) com a mesma forma de chamada usada pelo app, e o usuário local (o PIN já abriu o cofre).
++  A = await import('/local/acesso.js');
++  F = await import('/local/dados.js');
++  auth = A.getAuth();
++  db = F.banco();
++  import('/local/backup.js').catch(e => console.error('backup', e));
+   A.onAuthStateChanged(auth, u => entrar(u).catch(erroFatal));
+-} catch (e) {
+-  console.error(e); mostrar('scrConfig'); $('cfgInput').value = JSON.stringify(config, null, 2);
+-  setMsg($('cfgMsg'), 'Não consegui iniciar o Firebase: ' + e.message, 'err');
+-}
++} catch (e) { erroFatal(e); }
+ function erroFatal(e) { console.error(e); toast('Erro: ' + (e?.message || e), 'err'); }
+ atualizarIlha();
+ 
+-const MSG_AUTH = {
+-  'auth/invalid-credential': 'E-mail ou senha incorretos.', 'auth/wrong-password': 'E-mail ou senha incorretos.',
+-  'auth/user-not-found': 'E-mail ou senha incorretos.', 'auth/invalid-email': 'E-mail inválido.',
+-  'auth/too-many-requests': 'Muitas tentativas. Espere alguns minutos e tente de novo.',
+-  'auth/network-request-failed': 'Sem conexão. Tente de novo quando estiver online.',
+-  'auth/user-disabled': 'Esta conta foi desativada pelo administrador.',
+-  'auth/invalid-verification-code': 'Código do autenticador incorreto.', 'auth/missing-code': 'Digite o código do autenticador.',
+-  'auth/email-already-in-use': 'Já existe uma conta com esse e-mail. Use "Incluir conta que já existe".',
+-  'auth/weak-password': 'Senha fraca: use pelo menos 6 caracteres.',
+-  'auth/requires-recent-login': 'Por segurança, confirme sua senha de novo.',
+-  'auth/unverified-email': 'Verifique seu e-mail antes de ativar as duas etapas.',
+-  'auth/operation-not-allowed': 'Recurso desligado no projeto Firebase. Veja o README (Identity Platform / TOTP).',
+-  'auth/admin-restricted-operation': 'Recurso desligado no projeto Firebase. Veja o README (Identity Platform / TOTP).'
+-};
+-const msgAuth = e => MSG_AUTH[e?.code] || e?.message || String(e);
+ 
+-/* ---------- login (sem cadastro público) + 2FA ---------- */
+-let resolverMfa = null;
+-$('loginForm').onsubmit = async e => {
+-  e.preventDefault();
+-  const btn = $('authGo'); btn.disabled = true; setMsg($('authMsg'), '');
+-  try {
+-    if (resolverMfa) {
+-      const hint = resolverMfa.hints.find(h => h.factorId === A.TotpMultiFactorGenerator.FACTOR_ID) || resolverMfa.hints[0];
+-      const codigo = $('mfaCode').value.replace(/\D/g, '');
+-      if (codigo.length !== 6) throw Object.assign(new Error(), { code: 'auth/missing-code' });
+-      await resolverMfa.resolveSignIn(A.TotpMultiFactorGenerator.assertionForSignIn(hint.uid, codigo));
+-      resolverMfa = null;
+-    } else {
+-      await A.signInWithEmailAndPassword(auth, $('authEmail').value.trim(), $('authPass').value);
+-    }
+-  } catch (err) {
+-    if (err.code === 'auth/multi-factor-auth-required') {
+-      resolverMfa = A.getMultiFactorResolver(auth, err);
+-      $('loginCampos').hidden = true; $('mfaCampos').hidden = false; btn.textContent = 'Confirmar código';
+-      setTimeout(() => $('mfaCode').focus(), 50);
+-    } else setMsg($('authMsg'), msgAuth(err), 'err');
+-  } finally { btn.disabled = false; }
+-};
+-$('forgot').onclick = async () => {
+-  const email = $('authEmail').value.trim();
+-  if (!email) { setMsg($('authMsg'), 'Digite seu e-mail acima e toque de novo em "Esqueci minha senha".', 'err'); $('authEmail').focus(); return; }
+-  try { await A.sendPasswordResetEmail(auth, email); }
+-  catch (err) { if (err.code === 'auth/invalid-email' || err.code === 'auth/network-request-failed') return setMsg($('authMsg'), msgAuth(err), 'err'); }
+-  setMsg($('authMsg'), 'Se o e-mail estiver cadastrado, você vai receber o link para criar uma nova senha.', 'ok');
+-};
+-function resetLogin() { resolverMfa = null; $('loginCampos').hidden = false; $('mfaCampos').hidden = true; $('mfaCode').value = ''; $('authGo').textContent = 'Entrar'; $('authPass').value = ''; }
+ 
+ const dekKey = id => 'dek:' + id;
+-async function sair() {
+-  pararTudo();
+-  if (casaId) try { cofre.removeItem(dekKey(casaId)); } catch {}
+-  chave = null; casaId = null; casa = null;
+-  await A.signOut(auth);
+-}
+-document.addEventListener('click', e => { if (e.target.closest('[data-logout]')) sair().catch(erroFatal); });
+ 
+ function iniciais(nome) {
+   const p = String(nome || '').trim().split(/[\s@.]+/).filter(Boolean);
+@@ -379,10 +288,7 @@
+ async function entrar(u) {
+   pararTudo();
+   user = u; perfil = null; casaId = null; casa = null; chave = null;
+-  if (!u) { $('avatar').textContent = 'FC'; $('title').textContent = APP_NOME; resetLogin(); mostrar('scrAuth'); return; }
+   mostrar('scrBoot');
+-  const cfgDoc = await F.getDoc(F.doc(db, 'config', 'app')).catch(() => null);
+-  souAdminApp = !cfgDoc?.exists() || cfgDoc.data().admin === u.uid;
+   const pDoc = await F.getDoc(F.doc(db, 'usuarios', u.uid)).catch(() => null);
+   perfil = pDoc?.exists() ? pDoc.data() : null;
+   $('avatar').textContent = iniciais(meuNome());
+@@ -393,9 +299,9 @@
+     casa = cDoc?.exists() ? cDoc.data() : null;
+     if (!casa) casaId = null;
+   }
+-  if (!casaId) return souAdminApp ? telaSetup('nova') : telaSemCasa();
++  if (!casaId) return telaSetup('nova');
+   $('title').textContent = casa.nome || APP_NOME;
+-  if (!casa.cripto) return souAdminApp ? telaSetup('proteger') : telaSemCasa('A casa ainda não foi protegida com criptografia. Peça ao administrador para abrir o app e ativar a proteção.');
++  if (!casa.cripto) return telaSetup('proteger');
+   let dek = cofre.getItem(dekKey(casaId));
+   // Chave guardada aqui mas a casa recomeçou a criptografia: esquece a antiga e pede as palavras novas.
+   if (dek && casa.cripto.kid && await C.kidDe(dek) !== casa.cripto.kid) { cofre.removeItem(dekKey(casaId)); dek = null; toast('A chave da casa foi refeita. Digite as novas palavras.'); }
+@@ -403,12 +309,6 @@
+   telaFrase();
+ }
+ 
+-function telaSemCasa(msg) {
+-  if (msg) $('semCasaMsg').textContent = msg;
+-  $('meuUid').textContent = user.uid;
+-  mostrar('scrSemCasa');
+-}
+-$('copyUid').onclick = () => copiar(user.uid, 'Código copiado');
+ async function copiar(texto, ok) {
+   try { await navigator.clipboard.writeText(texto); toast(ok); } catch { prompt('Copie:', texto); }
+ }
+@@ -446,7 +346,6 @@
+   e.preventDefault();
+   const nome = $('setupNome').value.trim() || 'Nossa casa';
+   if (!$('setupOk').checked) return setMsg($('setupMsg'), 'Anote as 12 palavras e marque a confirmação.', 'err');
+-  if (!navigator.onLine) return setMsg($('setupMsg'), 'Conecte-se à internet para continuar.', 'err');
+   $('setupGo').disabled = true; setMsg($('setupMsg'), 'Gerando a chave da casa…');
+   try {
+     if (modoSetup === 'migrar') {
+@@ -456,8 +355,6 @@
+       toast('Frase antiga apagada. Agora valem as 12 palavras.'); abrirApp();
+       return;
+     }
+-    const cfgRef = F.doc(db, 'config', 'app');
+-    if (!(await F.getDoc(cfgRef)).exists()) await F.setDoc(cfgRef, { admin: user.uid });
+     let codigo;
+     if (modoSetup === 'nova') {
+       const ref = novaCasaRef;
+@@ -467,7 +364,7 @@
+       casaId = ref.id; cofre.setItem(dekKey(casaId), r.dek); chave = await C.chaveDados(r.dek); codigo = r.codigo;
+     } else if (modoSetup === 'recomecar') {
+       const { n, travados } = await limparCasa(n => setMsg($('setupMsg'), `Apagando… ${n} registros`));
+-      legadoN = 0; setMsg($('setupMsg'), `${n} registros apagados${travados ? `; ${travados} travados ficam ilegíveis` : ''}. Gerando a chave nova…`);
++      setMsg($('setupMsg'), `${n} registros apagados${travados ? `; ${travados} travados ficam ilegíveis` : ''}. Gerando a chave nova…`);
+       const r = await C.criarCriptoCasa(casaId, setupP);
+       await F.updateDoc(F.doc(db, 'casas', casaId), { cripto: r.cripto });
+       casa.cripto = r.cripto; cofre.setItem(dekKey(casaId), r.dek); chave = await C.chaveDados(r.dek); codigo = r.codigo;
+@@ -585,7 +482,7 @@
+ function seguirComChave() { return fraseAntiga() ? telaSetup('migrar') : abrirApp(); }
+ // Último recurso do administrador: sem palavras, sem código e sem nenhum aparelho liberado.
+ // Apaga todos os registros da casa (os cifrados ficaram ilegíveis; os antigos sem criptografia também vão) e recomeça.
+-const COLECOES_CASA = ['lancamentos', 'compras', 'cartoes', 'dividas', 'investimentos', 'metas', 'despesas'];
++const COLECOES_CASA = ['lancamentos', 'compras', 'cartoes', 'dividas', 'investimentos', 'metas'];
+ // Lançamentos e compras com mais de 2 dias não saem (trava das regras): ficam no banco cifrados com a chave
+ // antiga, que deixa de existir, e o app os ignora. A folga de 1 h evita a borda do relógio do aparelho.
+ async function limparCasa(aviso) {
+@@ -1089,28 +986,15 @@
+       <div class="t"><b>${esc(nome)}${eu ? ' (você)' : ''}</b><small>${uid === casa.admin ? 'administrador' : 'membro'}</small></div>
+       ${admin ? `<button class="mini" data-pessoa="${esc(uid)}">Editar</button>` : ''}</div>`;
+   }).join('');
+-  $('adminPessoas').hidden = !admin;
+-  if (admin) renderConvites();
+-  $('adminDados').hidden = !admin || !legadoN;
+-  $('legadoN').textContent = legadoN ? legadoN + (legadoN === 1 ? ' registro' : ' registros') : '';
+-  if (admin && legadoN === 0) F.getCountFromServer(colRef('despesas')).then(s => { legadoN = s.data().count; $('adminDados').hidden = !legadoN; $('legadoN').textContent = legadoN + (legadoN === 1 ? ' registro' : ' registros'); }).catch(() => {});
+-
+-  const tem2fa = A.multiFactor(user).enrolledFactors.length > 0;
+   const linhaCfg = (titulo, desc, botao, acao, cls = '') => `<div class="setting"><div class="t"><b>${titulo}</b><small>${desc}</small></div>${botao ? `<button class="mini ${cls}" data-cfg="${acao}">${botao}</button>` : ''}</div>`;
+   $('seguranca').innerHTML =
+-    linhaCfg('PIN e biometria', 'Abrem o app neste aparelho. Bloqueio automático e troca de PIN.', 'Ajustar', 'pin')
+-    + linhaCfg('Duas etapas (Proton Pass)', tem2fa ? '<span class="badge">ativada</span> código do app autenticador no login' : 'Pede o código de 6 números do app autenticador ao entrar.', tem2fa ? 'Desativar' : 'Ativar', tem2fa ? '2fa-off' : '2fa-on', tem2fa ? 'out' : '')
+-    + linhaCfg('E-mail', esc(user.email) + (user.emailVerified ? ' · <span class="badge">verificado</span>' : ' · <span class="badge warn">não verificado</span>'), user.emailVerified ? '' : 'Verificar', 'verificar')
+-    + linhaCfg('Senha da conta', 'Enviamos um link para você criar uma nova.', 'Trocar', 'senha')
+-    + linhaCfg('Criptografia', 'Ponta a ponta (AES-256). O servidor só guarda dados cifrados.', '', '')
+-    + linhaCfg('Selo da casa', casa.cripto?.selo ? `<b class="num">${esc(casa.cripto.selo)}</b> · igual em todos os aparelhos da casa` : 'frase antiga · aguardando o administrador gerar as palavras', '', '')
++    linhaCfg('PIN', 'Abre o app neste aparelho. Bloqueio automático e troca de PIN.', 'Ajustar', 'pin')
++    + linhaCfg('Criptografia', 'AES-256. Os dados ficam cifrados no banco SQLite deste aparelho.', '', '')
++    + linhaCfg('Selo da casa', casa.cripto?.selo ? `<b class="num">${esc(casa.cripto.selo)}</b> · confere com o backup` : 'frase antiga · aguardando o administrador gerar as palavras', '', '')
+     + (admin ? linhaCfg('Palavras da casa', 'Gera 12 palavras novas e apaga as anteriores. Troque se alguém de fora souber delas.', 'Gerar novas', 'frase')
+       + linhaCfg('Código de recuperação', 'Gera um novo e invalida o anterior.', 'Gerar', 'codigo')
+       + linhaCfg('Envelope do administrador', casa.cripto?.cert ? `<span class="badge">ativo</span> hash de segurança <b class="num">${esc(casa.cripto.cert)}</b>` : 'Certificado com senha + código de recuperação, para quando perder as palavras.', casa.cripto?.cert ? 'Gerar novo' : 'Gerar', 'envelope') : '');
+-  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+-  $('appInfo').innerHTML = linhaCfg('Instalar no celular', standalone ? 'Instalado ✓' : instalar ? 'Adiciona o ícone na tela inicial e abre sem barra do navegador.' : 'No iPhone: Safari → Compartilhar → Adicionar à Tela de Início. No Android: menu ⋮ → Instalar app.', !standalone && instalar ? 'Instalar' : '', 'instalar')
+-    + linhaCfg('Versão', esc(root.dataset.vaultVersion) + ' · projeto ' + esc(config.projectId), '', '')
+-    + linhaCfg('Atualização', 'Limpa o cache offline e busca a versão mais nova.', 'Atualizar', 'updateApp');
++  $('appInfo').innerHTML = linhaCfg('Versão', esc(root.dataset.vaultVersion) + ' · modo local (SQLite)', '', '');
+   syncAparencia();
+ }
+ const pickModo = segInit($('segModo'), b => setPref(b.dataset.m));
+@@ -1121,93 +1005,10 @@
+   const b = e.target.closest('[data-cfg]'); if (!b) return;
+   ({
+     pin: () => window.FinancSettings?.open(),
+-    '2fa-on': ativar2FA, '2fa-off': desativar2FA,
+-    verificar: () => A.sendEmailVerification(user).then(() => toast('Enviamos o link de verificação para ' + user.email)).catch(err => toast(msgAuth(err), 'err')),
+-    senha: () => A.sendPasswordResetEmail(auth, user.email).then(() => toast('Link enviado para ' + user.email)).catch(err => toast(msgAuth(err), 'err')),
+-    frase: gerarPalavrasCasa, codigo: gerarCodigoCasa, envelope: gerarEnvelope,
+-    instalar: async () => { if (!instalar) return; instalar.prompt(); await instalar.userChoice.catch(() => {}); instalar = null; renderCasa(); },
+-    updateApp: async () => {
+-      try {
+-        if (window.caches) {
+-          const keys = await caches.keys();
+-          await Promise.all(keys.map(k => caches.delete(k)));
+-        }
+-        if ('serviceWorker' in navigator) {
+-          const regs = await navigator.serviceWorker.getRegistrations();
+-          await Promise.all(regs.map(r => r.unregister()));
+-        }
+-      } catch(e) {}
+-      window.location.reload(true);
+-    }
++    frase: gerarPalavrasCasa, codigo: gerarCodigoCasa, envelope: gerarEnvelope
+   })[b.dataset.cfg]?.();
+ });
+ 
+-/* reautenticação (com 2FA, se ativado) antes de operações sensíveis */
+-function reautenticar(motivo) {
+-  return new Promise((resolve, reject) => {
+-    let resolver = null;
+-    abrirForm({
+-      titulo: 'Confirme que é você', botao: 'Confirmar',
+-      campos: () => [{ tipo: 'html', html: `<p class="lede">${esc(motivo)}</p>` }, { nome: 'senha', rotulo: 'Senha da conta', tipo: 'senha', auto: 'current-password' }, { nome: 'codigo', rotulo: 'Código do autenticador', dica: '(se tiver duas etapas)', tipo: 'texto', max: 6 }],
+-      aoSalvar: async v => {
+-        try {
+-          if (resolver) {
+-            const hint = resolver.hints[0];
+-            await resolver.resolveSignIn(A.TotpMultiFactorGenerator.assertionForSignIn(hint.uid, String(v.codigo || '').replace(/\D/g, '')));
+-          } else await A.reauthenticateWithCredential(user, A.EmailAuthProvider.credential(user.email, v.senha || ''));
+-          resolve();
+-        } catch (err) {
+-          if (err.code === 'auth/multi-factor-auth-required') { resolver = A.getMultiFactorResolver(auth, err); throw Object.assign(new Error('Agora digite o código do autenticador.'), { campo: 'codigo' }); }
+-          throw Object.assign(new Error(msgAuth(err)), { campo: err.code === 'auth/invalid-verification-code' ? 'codigo' : 'senha' });
+-        }
+-      }
+-    });
+-    scrim.addEventListener('click', () => reject(new Error('cancelado')), { once: true });
+-  });
+-}
+-async function comLoginRecente(motivo, fn) {
+-  try { return await fn(); }
+-  catch (err) {
+-    if (err.code !== 'auth/requires-recent-login') throw err;
+-    await reautenticar(motivo);
+-    return fn();
+-  }
+-}
+-async function ativar2FA() {
+-  if (!user.emailVerified) { toast('Verifique seu e-mail primeiro (Segurança → E-mail).', 'err'); return; }
+-  try {
+-    const sessao = await comLoginRecente('Para ativar as duas etapas, confirme sua senha.', () => A.multiFactor(user).getSession());
+-    const segredo = await A.TotpMultiFactorGenerator.generateSecret(sessao);
+-    const url = segredo.generateQrCodeUrl(user.email, APP_NOME);
+-    let svg = '';
+-    try { const qr = window.qrcode(0, 'M'); qr.addData(url); qr.make(); svg = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch {}
+-    abrirForm({
+-      titulo: 'Duas etapas com Proton Pass', botao: 'Ativar',
+-      campos: () => [
+-        { tipo: 'html', html: `<p class="lede">1. No Proton Pass, abra o item da sua conta (ou crie um) → <b>Adicionar campo 2FA</b> → leia o QR ou cole a chave.</p>${svg ? `<div class="qr">${svg}</div>` : ''}
+-          <div class="code num" id="totpChave">${esc(segredo.secretKey)}</div>
+-          <div class="acts" style="display:flex;gap:8px;margin-top:10px"><button type="button" class="mini" id="copiaChave">Copiar chave</button><a class="mini" style="display:inline-grid;place-items:center;text-decoration:none" href="${esc(url)}">Abrir no app</a></div>
+-          <p class="lede" style="margin-top:14px">2. Digite o código de 6 números que aparece no Proton Pass.</p>` },
+-        { nome: 'codigo', rotulo: 'Código', tipo: 'texto', max: 6, auto: 'one-time-code' }
+-      ],
+-      depois: f => { f.querySelector('#copiaChave').onclick = () => copiar(segredo.secretKey, 'Chave copiada'); },
+-      aoSalvar: async v => {
+-        try { await A.multiFactor(user).enroll(A.TotpMultiFactorGenerator.assertionForEnrollment(segredo, String(v.codigo || '').replace(/\D/g, '')), 'Proton Pass'); }
+-        catch (err) { throw Object.assign(new Error(msgAuth(err)), { campo: 'codigo' }); }
+-        toast('Duas etapas ativadas'); renderCasa();
+-      }
+-    });
+-  } catch (err) { if (err.message !== 'cancelado') toast(msgAuth(err), 'err'); }
+-}
+-async function desativar2FA() {
+-  try {
+-    const fator = A.multiFactor(user).enrolledFactors[0]; if (!fator) return;
+-    await comLoginRecente('Para desativar as duas etapas, confirme sua senha e o código.', () => A.multiFactor(user).unenroll(fator));
+-    toast('Duas etapas desativadas'); renderCasa();
+-  } catch (err) { if (err.message !== 'cancelado') toast(msgAuth(err), 'err'); }
+-}
+-
+-/* palavras e código da casa (administrador) */
+ async function gerarPalavrasCasa() {
+   const p = await C.novasPalavras(casaId);
+   abrirForm({
+@@ -1237,10 +1038,8 @@
+ /* Envelope do administrador: certificado (arquivo com senha, 3ª chave da casa) + código de recuperação novo
+    + hash de segurança. Só grava na casa depois que o administrador confirma que guardou; até lá, o envelope
+    e o código anteriores continuam valendo. */
+-function baixar(nome, texto, tipo) {
+-  const url = URL.createObjectURL(new Blob([texto], { type: tipo }));
+-  const a = Object.assign(document.createElement('a'), { href: url, download: nome });
+-  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
++function baixar(nome, texto) {
++  window.stkSalvarArquivo(nome, texto).then(r => toast(r.local ? 'Salvo em ' + r.local : 'Arquivo pronto')).catch(e => toast('Não salvei: ' + e.message, 'err'));
+ }
+ function folhaEnvelope(r) {
+   const data = new Date(r.arquivo.emitido).toLocaleString('pt-BR');
+@@ -1303,141 +1102,7 @@
+   });
+ }
+ 
+-/* pessoas (administrador) */
+-$('addPessoa').onclick = () => abrirForm({
+-  titulo: 'Cadastrar pessoa', botao: 'Cadastrar',
+-  campos: () => [{ tipo: 'html', html: '<p class="lede">Crie o acesso para sua esposa ou familiar. Depois, passe as <b>12 palavras</b> ou a <b>hash da casa</b> pessoalmente para liberar o aparelho dela.</p>' },
+-    { nome: 'nome', rotulo: 'Nome', tipo: 'texto', max: 60, placeholder: 'Ex.: Ana' },
+-    { nome: 'email', rotulo: 'E-mail', tipo: 'texto', max: 120, auto: 'off' },
+-    { nome: 'senha', rotulo: 'Senha', tipo: 'texto', max: 60, auto: 'off', placeholder: 'Pelo menos 6 caracteres' }],
+-  aoSalvar: async v => {
+-    if (!v.nome) throw Object.assign(new Error('Informe o nome.'), { campo: 'nome' });
+-    if (!/^\S+@\S+\.\S+$/.test(v.email || '')) throw Object.assign(new Error('E-mail inválido.'), { campo: 'email' });
+-    if (!v.senha || v.senha.length < 6) throw Object.assign(new Error('A senha deve ter pelo menos 6 caracteres.'), { campo: 'senha' });
+-    // App secundário em memória: cria a conta sem derrubar a sessão do administrador.
+-    const sec = initializeApp(config, 'cadastro-' + Date.now());
+-    let novoUid;
+-    try {
+-      const sa = A.initializeAuth(sec, { persistence: A.inMemoryPersistence });
+-      const cred = await A.createUserWithEmailAndPassword(sa, v.email, v.senha);
+-      novoUid = cred.user.uid;
+-      await A.updateProfile(cred.user, { displayName: v.nome });
+-      await A.signOut(sa);
+-    } catch (err) { throw Object.assign(new Error(msgAuth(err)), { campo: 'email' }); }
+-    finally { deleteApp(sec).catch(() => {}); }
+-    await incluirPessoa(novoUid, v.nome);
+-    toast(`${v.nome} cadastrada. Ela já pode entrar no app.`);
+-  }
+-});
+-$('addPessoaUid').onclick = () => abrirForm({
+-  titulo: 'Incluir conta que já existe', botao: 'Incluir',
+-  campos: () => [{ tipo: 'html', html: '<p class="lede">A pessoa entra no app com a conta dela e copia o código que aparece na tela “Quase lá”.</p>' },
+-    { nome: 'nome', rotulo: 'Nome', tipo: 'texto', max: 60 }, { nome: 'uid', rotulo: 'Código da pessoa', tipo: 'texto', max: 128 }],
+-  aoSalvar: async v => {
+-    if (!v.nome) throw Object.assign(new Error('Informe o nome.'), { campo: 'nome' });
+-    if (!/^[A-Za-z0-9]{20,128}$/.test(v.uid || '')) throw Object.assign(new Error('Código inválido.'), { campo: 'uid' });
+-    await incluirPessoa(v.uid, v.nome); toast(`${v.nome} incluída na casa`);
+-  }
+-});
+-// Convite de uso único: token aleatório (128 bits) em convites/{token}, vale 24 h (as regras aceitam até 48 h).
+-const CONVITE_HORAS = 24;
+-const linkConvite = token => location.origin + location.pathname + '?convite=' + token;
+-async function gerarConvite() {
+-  const token = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+-  try {
+-    await F.setDoc(F.doc(db, 'convites', token), { casaId, criadoPor: user.uid, criadoEm: F.serverTimestamp(), expira: F.Timestamp.fromMillis(Date.now() + CONVITE_HORAS * 3600e3) });
+-    copiar(linkConvite(token), `Link copiado! Vale por ${CONVITE_HORAS} h e uma única vez.`);
+-    carregarConvites();
+-  } catch (err) { toast('Não gerei o convite: ' + err.message, 'err'); }
+-}
+-$('addPessoaConvite').onclick = gerarConvite;
+-$('novoConvite').onclick = gerarConvite;
+-
+-// Códigos de acesso: o administrador vê os convites que gerou para esta casa (as regras só listam os dele).
+-let convites = [];
+-const situacao = cv => cv.usadoPor ? 'usado' : cv.expira.toMillis() < Date.now() ? 'vencido' : 'ativo';
+-const quando = ts => ts?.toDate ? ts.toDate().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+-async function carregarConvites() {
+-  if (!souAdminCasa()) return;
+-  try {
+-    const snap = await F.getDocs(F.query(F.collection(db, 'convites'), F.where('criadoPor', '==', user.uid), F.where('casaId', '==', casaId)));
+-    convites = snap.docs.map(d => ({ token: d.id, ...d.data() })).filter(cv => cv.expira)
+-      .sort((a, b) => (b.criadoEm?.toMillis?.() || Date.now()) - (a.criadoEm?.toMillis?.() || Date.now()));
+-  } catch (err) { convites = []; toast('Não li os códigos: ' + err.message, 'err'); }
+-  renderConvites();
+-}
+-function renderConvites() {
+-  const ativos = convites.filter(cv => situacao(cv) === 'ativo').length;
+-  $('convitesN').textContent = convites.length ? `${ativos} ${ativos === 1 ? 'ativo' : 'ativos'}` : '';
+-  $('limparConvites').hidden = !convites.some(cv => situacao(cv) !== 'ativo');
+-  $('convites').innerHTML = convites.length ? convites.map(cv => {
+-    const s = situacao(cv), cod = cv.token.slice(-8).toUpperCase().replace(/(.{4})/, '$1-');
+-    const desc = s === 'ativo' ? `<span class="badge">ativo</span> vale até ${quando(cv.expira)}`
+-      : s === 'usado' ? `<span class="badge mute">usado</span> por ${esc(casa.pessoas?.[cv.usadoPor]?.nome || 'pessoa removida')} em ${quando(cv.usadoEm)}`
+-      : `<span class="badge warn">vencido</span> em ${quando(cv.expira)}`;
+-    const botoes = s === 'ativo'
+-      ? `<button class="mini" data-conv="copiar" data-t="${cv.token}">Copiar</button><button class="mini out" data-conv="revogar" data-t="${cv.token}">Revogar</button>`
+-      : `<button class="mini" data-conv="apagar" data-t="${cv.token}">Limpar</button>`;
+-    return `<div class="setting"><div class="t"><b class="num">…${cod}</b><small>${desc} · gerado ${quando(cv.criadoEm) || 'agora'}</small></div>${botoes}</div>`;
+-  }).join('') : '<div class="setting"><div class="t"><b>Nenhum código gerado</b><small>Gere um código e mande o link para a pessoa nova. Vale 24 h e uma única vez.</small></div></div>';
+-}
+-document.addEventListener('click', async e => {
+-  const b = e.target.closest('[data-conv]'); if (!b || !souAdminCasa()) return;
+-  const t = b.dataset.t;
+-  if (b.dataset.conv === 'copiar') return copiar(linkConvite(t), 'Link copiado');
+-  if (b.dataset.conv === 'revogar' && !confirm('Revogar este código? O link deixa de funcionar na hora.')) return;
+-  try { await F.deleteDoc(F.doc(db, 'convites', t)); toast(b.dataset.conv === 'revogar' ? 'Código revogado' : 'Código removido da lista'); }
+-  catch (err) { toast('Não consegui: ' + err.message, 'err'); }
+-  carregarConvites();
+-});
+-$('limparConvites').onclick = async () => {
+-  const velhos = convites.filter(cv => situacao(cv) !== 'ativo');
+-  try {
+-    const b = F.writeBatch(db); velhos.forEach(cv => b.delete(F.doc(db, 'convites', cv.token))); await b.commit();
+-    toast(`${velhos.length} ${velhos.length === 1 ? 'código removido' : 'códigos removidos'}`);
+-  } catch (err) { toast('Não limpei: ' + err.message, 'err'); }
+-  carregarConvites();
+-};
+-$('authConvite').onclick = () => abrirForm({
+-  titulo: 'Aceitar Convite', botao: 'Cadastrar e Entrar',
+-  campos: () => [
+-    { tipo: 'html', html: '<p class="lede">Crie sua conta para entrar na casa.</p>' },
+-    { nome: 'codigo', rotulo: 'Link de convite (ou Código)', tipo: 'texto', max: 200, pre: new URLSearchParams(location.search).get('convite') || '' },
+-    { nome: 'nome', rotulo: 'Seu nome (ex: Ana)', tipo: 'texto', max: 60 },
+-    { nome: 'email', rotulo: 'Seu E-mail', tipo: 'texto', max: 120, auto: 'username' },
+-    { nome: 'senha', rotulo: 'Criar uma Senha', tipo: 'texto', max: 60, auto: 'new-password' }
+-  ],
+-  aoSalvar: async v => {
+-    if (!v.codigo) throw Object.assign(new Error('Cole o link do convite.'), { campo: 'codigo' });
+-    if (!v.nome) throw Object.assign(new Error('Informe o nome.'), { campo: 'nome' });
+-    if (!/^\S+@\S+\.\S+$/.test(v.email || '')) throw Object.assign(new Error('E-mail inválido.'), { campo: 'email' });
+-    if (!v.senha || v.senha.length < 6) throw Object.assign(new Error('Pelo menos 6 caracteres.'), { campo: 'senha' });
+-    let token = v.codigo.trim(); if (token.includes('convite=')) token = token.split('convite=')[1].split('&')[0];
+-    token = token.toLowerCase();
+-    const semConvite = () => Object.assign(new Error('Convite inválido, vencido ou já usado. Peça um novo link ao administrador.'), { campo: 'codigo' });
+-    if (!/^[0-9a-f]{32}$/.test(token)) throw semConvite();
+-    const cRef = F.doc(db, 'convites', token);
+-    const conv = await F.getDoc(cRef).catch(() => null);
+-    const cv = conv?.exists() ? conv.data() : null;
+-    if (!cv || cv.usadoPor || cv.expira.toMillis() < Date.now()) throw semConvite();
+-    const cred = await A.createUserWithEmailAndPassword(auth, v.email, v.senha);
+-    const uid = cred.user.uid, b = F.writeBatch(db);
+-    b.update(cRef, { usadoPor: uid, usadoEm: F.serverTimestamp() });
+-    b.update(F.doc(db, 'casas', cv.casaId), { membros: F.arrayUnion(uid), [`pessoas.${uid}`]: { nome: v.nome, convite: token } });
+-    b.set(F.doc(db, 'usuarios', uid), { nome: v.nome, casaId: cv.casaId });
+-    await b.commit();
+-    toast('Cadastro concluído! Entrando...');
+-    setTimeout(() => location.replace(location.origin + location.pathname), 1500);
+-  }
+-});
+-if (new URLSearchParams(location.search).has('convite')) {
+-  setTimeout(() => { if (!user && !folha.classList.contains('in')) $('authConvite').click(); }, 800);
+-}
+-
+-async function incluirPessoa(uid, nome) {
+-  await F.updateDoc(F.doc(db, 'casas', casaId), { membros: F.arrayUnion(uid), [`pessoas.${uid}`]: { nome } });
+-  await F.setDoc(F.doc(db, 'usuarios', uid), { nome, casaId });
+-}
++/* pessoas: só o nome de quem usa este aparelho */
+ document.addEventListener('click', e => {
+   const b = e.target.closest('[data-pessoa]'); if (!b || !souAdminCasa()) return;
+   const uid = b.dataset.pessoa, nome = casa.pessoas?.[uid]?.nome || '';
+@@ -1445,41 +1110,5 @@
+     titulo: 'Editar pessoa', valores: { nome }, botao: 'Salvar nome',
+     campos: () => [{ nome: 'nome', rotulo: 'Nome', tipo: 'texto', max: 60 }],
+     aoSalvar: async v => { if (!v.nome) throw Object.assign(new Error('Informe o nome.'), { campo: 'nome' }); await F.updateDoc(F.doc(db, 'casas', casaId), { [`pessoas.${uid}.nome`]: v.nome }); toast('Nome atualizado'); },
+-    aoExcluir: uid === user.uid ? null : async () => {
+-      await F.updateDoc(F.doc(db, 'casas', casaId), { membros: F.arrayRemove(uid), [`pessoas.${uid}`]: F.deleteField() }).catch(erro('Não removeu'));
+-      toast(`${nome || 'Pessoa'} removida da casa. Gere novas palavras da casa por segurança.`);
+-    }
+   });
+ });
+-
+-/* dados antigos (sem criptografia) */
+-const CAT_ANTIGA = { Casa: 'Moradia' };
+-$('migrar').onclick = async () => {
+-  $('migrar').disabled = true;
+-  try {
+-    const snap = await F.getDocs(colRef('despesas'));
+-    let n = 0, batch = F.writeBatch(db), ops = 0;
+-    for (const d of snap.docs) {
+-      const x = d.data();
+-      const valores = M.limparOuNulo('lancamento', { tipo: 'despesa', descricao: x.descricao, valorCentavos: x.valorCentavos, data: x.data, categoria: CAT_ANTIGA[x.categoria] || x.categoria || 'Outros', autorNome: x.autorNome });
+-      if (valores) {
+-        const ref = F.doc(colRef('lancamentos'));
+-        batch.set(ref, { c: await C.selar(chave, valores, C.aad(casaId, 'lancamentos', ref.id)), v: 1, por: user.uid, em: F.serverTimestamp(), mes: M.mesDe(valores.data) });
+-        ops++; n++;
+-      }
+-      batch.delete(d.ref); ops++;
+-      if (ops >= 400) { await batch.commit(); batch = F.writeBatch(db); ops = 0; }
+-    }
+-    if (ops) await batch.commit();
+-    legadoN = 0; renderCasa(); toast(`${n} despesas migradas e criptografadas`);
+-  } catch (err) { toast('Migração interrompida: ' + err.message, 'err'); }
+-  finally { $('migrar').disabled = false; }
+-};
+-$('apagarLegado').onclick = async () => {
+-  if (!confirm('Apagar as despesas antigas sem migrar? Não dá para desfazer.')) return;
+-  try {
+-    const snap = await F.getDocs(colRef('despesas'));
+-    for (let i = 0; i < snap.docs.length; i += 450) { const b = F.writeBatch(db); snap.docs.slice(i, i + 450).forEach(d => b.delete(d.ref)); await b.commit(); }
+-    legadoN = 0; renderCasa(); toast('Dados antigos apagados');
+-  } catch (err) { toast('Não apaguei: ' + err.message, 'err'); }
+-};
+--- a/stk-pkg-secure-ui.js
++++ b/stk-pkg-secure-ui.js
+@@ -13,7 +13,7 @@
+     return;
+   }
+   const appId = root.dataset.vaultApp;
+-  const nativeStorage = window.localStorage;
++  const nativeStorage = window.stkArmazem; // edição local: SQLite do aparelho
+   const LEGACY_KEYS = { 'cripito-sim': /^cripto[-:]/, 'cambio-sim': /^cambio_/, 'gerenc-fin': /^livro_caixa_/ };
+   const matches = key => Boolean(LEGACY_KEYS[appId] && LEGACY_KEYS[appId].test(key));
+   const icon = (name, size) => window.FinancIcons ? FinancIcons.svg(name, { size }) : '';
+@@ -30,7 +30,7 @@
+   let installPrompt = null;
+   addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; });
+   addEventListener('appinstalled', () => { installPrompt = null; });
+-  const session = { take(key) { try { const v = sessionStorage.getItem(key); sessionStorage.removeItem(key); return v; } catch (_) { return null; } }, set(key) { try { sessionStorage.setItem(key, '1'); } catch (_) {} } };
++  const session = { take(key) { try { const v = window.stkSessao.getItem(key); window.stkSessao.removeItem(key); return v; } catch (_) { return null; } }, set(key) { try { window.stkSessao.setItem(key, '1'); } catch (_) {} } };
+ 
+   // O PIN é local ao cofre: gerenciadores de senha (Proton Pass, 1Password, Bitwarden, LastPass, Dashlane) não devem sugerir nem salvar.
+   const NO_AUTOFILL = ' autocomplete="off" data-protonpass-ignore="true" data-1p-ignore="true" data-lpignore="true" data-bwignore="true" data-form-type="other"';
+@@ -118,45 +118,14 @@
+   };
+   // Prevent an early unhandled rejection while the user is typing.
+   tabReady.catch(block);
+-  async function clearLegacySessionKeys() {
+-    if (appId !== 'gerenc-fin') return;
+-    await new Promise((resolve, reject) => {
+-      const req = indexedDB.deleteDatabase('gerenc-fin-security-v1');
+-      req.onsuccess = () => resolve();
+-      req.onerror = () => reject(new Error('Não foi possível remover as chaves da sessão antiga.'));
+-      req.onblocked = () => reject(new Error('Feche as abas antigas do gerenciador para remover as chaves da sessão anterior.'));
+-    });
+-  }
+-  const legacyCleanup = tabReady.then(clearLegacySessionKeys);
+-  legacyCleanup.catch(block);
++  const legacyCleanup = tabReady;
+ 
+-  // Recarregar a página não bloqueia: a chave do cofre fica cifrada no sessionStorage da aba (some ao fechar a aba)
+-  // por uma chave AES não-exportável guardada no IndexedDB. Só o bloqueio (manual, por inatividade ou ao sair) apaga.
+   const SESSION = 'financ-vault-session:' + appId, RELOAD_GRACE_MS = 5000;
+-  function sessionStore(mode, run) {
+-    return new Promise((resolve, reject) => {
+-      const req = indexedDB.open('financ-vault-session', 1);
+-      req.onupgradeneeded = () => req.result.createObjectStore('keys');
+-      req.onerror = () => reject(req.error);
+-      req.onsuccess = () => {
+-        const db = req.result, tx = db.transaction('keys', mode), result = run(tx.objectStore('keys'));
+-        tx.oncomplete = () => { db.close(); resolve(result.result); };
+-        tx.onerror = tx.onabort = () => { db.close(); reject(tx.error); };
+-      };
+-    });
+-  }
+-  async function loadSessionKey() {
+-    let key = await sessionStore('readonly', store => store.get(appId));
+-    if (!(key instanceof CryptoKey)) {
+-      key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+-      await sessionStore('readwrite', store => store.put(key, appId));
+-    }
+-    vault.sessionKey = key;
+-  }
+-  const sessionReady = tabReady.then(loadSessionKey).catch(() => {});
+-  function readSession() { try { return JSON.parse(sessionStorage.getItem(SESSION)); } catch (_) { return null; } }
+-  function saveSession(extra) { if (vault.session) { try { sessionStorage.setItem(SESSION, JSON.stringify({ blob: vault.session, at: lastActivity, ...extra })); } catch (_) {} } }
+-  function dropSession() { try { sessionStorage.removeItem(SESSION); } catch (_) {} }
++  // Edição local: sem IndexedDB não há chave de sessão; recarregar a página pede o PIN de novo.
++  const sessionReady = Promise.resolve();
++  function readSession() { try { return JSON.parse(window.stkSessao.getItem(SESSION)); } catch (_) { return null; } }
++  function saveSession(extra) { if (vault.session) { try { window.stkSessao.setItem(SESSION, JSON.stringify({ blob: vault.session, at: lastActivity, ...extra })); } catch (_) {} } }
++  function dropSession() { try { window.stkSessao.removeItem(SESSION); } catch (_) {} }
+   const savedSession = readSession();
+   // Enquanto reabre a sessão, mostra só o nome do app e a versão (sem piscar a tela de PIN).
+   const boot = document.createElement('div'); boot.id = 'vaultBoot'; boot.setAttribute('aria-live', 'polite');
+@@ -784,14 +753,4 @@
+       vault.removeItem(key); await vault.flush();
+     }
+   }
+-  if ('serviceWorker' in navigator) {
+-    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => reg.update()).catch(() => {});
+-    // Versão nova do app: recarrega para usar os arquivos novos, mas só na tela de PIN parada.
+-    // Nunca na primeira instalação (não há versão antiga) nem com PIN sendo digitado ou verificado.
+-    const hadController = Boolean(navigator.serviceWorker.controller);
+-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+-      if (!hadController || vault.key || locking || busy || pinInput.value || document.activeElement === get('vaultRecovery')) return;
+-      location.reload();
+-    });
+-  }
+ })();

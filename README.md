@@ -1,6 +1,8 @@
 # Finanças da Casa · app Android (Capacitor, modo local)
 
-O PWA `../stk-desp-firebase-google/src` (v2.6.3) empacotado como app Android em **modo local**: os dados ficam num banco **SQLite** no próprio celular, sem Firebase, sem internet e sem armazenamento do navegador. O repositório do PWA não muda: o modo local é montado na cópia (`www/`) pelo `scripts/copiar-web.mjs`.
+Edição local do Finanças da Casa para Android: os dados ficam num banco **SQLite** no próprio celular. **Sem Firebase, sem internet e sem armazenamento do navegador** (nada de localStorage, sessionStorage, IndexedDB, cache ou service worker).
+
+É montada a partir do PWA `../stk-desp-firebase-google/src` (v2.6.3), que não muda: a versão web continua com Firebase.
 
 ## Baixar o APK no celular
 
@@ -15,7 +17,7 @@ O APK é assinado com a chave de release da Systekna (certificado `CN=Celso de A
 Tudo roda na máquina local; o repositório guarda o código e publica o APK em Releases.
 
 ```bash
-npm run web          # copia o PWA para www/ e liga o modo local; rode a cada versão nova do PWA
+npm run web          # monta www/: PWA + patches/pwa-local.patch + local/
 npm run sync         # web + cap sync android
 npm run apk          # build completo: dist/financas-casa-capacitor.apk
 scripts/publicar-apk.sh v2.6.4   # cria a Release e atualiza a página de download (precisa do gh logado)
@@ -29,33 +31,55 @@ Requisitos: Node 22+ (o script usa o `nvm` se houver), JDK 21, a chave de assina
 
 `scripts/build-apk.sh` compila o release e assina com `~/.android-keys/systekna-release.jks` (alias `systekna`, senha em `~/.android-keys/systekna-release.pass`). Outros caminhos: `STK_KEYSTORE` e `STK_KEYPASS_FILE`. A chave nunca entra no git. **Sem ela não dá para publicar atualizações**: os aparelhos recusam um APK assinado com outra chave.
 
-## Modo local (SQLite)
+## Edição local (SQLite)
 
 | Onde | O que guarda |
 | --- | --- |
-| Tabela `docs` | Os dados da casa (lançamentos, compras, cartões, dívidas, investimentos, metas), **cifrados com a chave da casa** (AES-256-GCM), como no PWA. |
-| Tabela `kv` | O que o PWA guardava no `localStorage`: cofre do PIN, chave da casa (protegida pelo PIN) e preferências. |
+| Tabela `docs` | Os dados da casa (lançamentos, compras, cartões, dívidas, investimentos, metas), **cifrados com a chave da casa** (AES-256-GCM). |
+| Tabela `kv` | Cofre do PIN, chave da casa (protegida pelo PIN) e preferências. |
 
 O arquivo do banco fica na pasta privada do app no celular (`databases/financas-casaSQLite.db`, plugin `@capacitor-community/sqlite`). Desinstalar o app ou limpar os dados dele apaga o banco: por isso existe o backup.
 
-Como funciona, em `local/` (vai para `www/fb-local/`):
+### Como é montada
 
-- `boot.js`: primeiro script da página. Abre o SQLite, carrega para a memória e troca `localStorage` (SQLite), `sessionStorage` (só memória), IndexedDB, Cache Storage e service worker (desligados). Depois carrega os scripts do PWA.
-- `firebase-firestore.js`, `firebase-auth.js`, `firebase-app.js`: mesma API do Firebase que o `app.js` usa, sem servidor. O `app.js` importa daqui (a URL do `gstatic` é trocada na cópia).
-- `modo-local.js`: esconde o que só existe com servidor (convites, duas etapas, e-mail, senha, sair da conta) e cria o **backup**.
+`npm run web` (`scripts/copiar-web.mjs`):
+
+1. copia o PWA para `www/`, sem `componentes.html` e `sw.js`;
+2. aplica **`patches/pwa-local.patch`**, que tira do app o login, os convites e as pessoas extras, as duas etapas, a configuração do Firebase, a migração de dados antigos, o service worker e o armazenamento do navegador;
+3. copia `local/` para `www/local/`:
+   - `boot.js`: primeiro script da página. Abre o SQLite e cria `stkArmazem` (tabela `kv`) e `stkSessao` (só memória). Depois carrega o app;
+   - `dados.js`: porta de dados do app sobre a tabela `docs`;
+   - `acesso.js`: usuário local (o PIN já abriu o cofre);
+   - `backup.js`: exportar e restaurar o backup cifrado, e gravar arquivos em Documentos.
+4. varre o `www/` e **para o build** se achar Firebase, `localStorage`, `sessionStorage`, `indexedDB` ou `serviceWorker` no código.
+
+### Atualizar o PWA
+
+Se o PWA mudar, o patch pode não encaixar e o `npm run web` para com aviso. Para regenerar:
+
+```bash
+python3 scripts/gerar-patch-local.py ../stk-desp-firebase-google/src /tmp/pwa-local
+for f in index.html js/app.js stk-pkg-secure-ui.js; do
+  diff -u --label a/$f --label b/$f ../stk-desp-firebase-google/src/$f /tmp/pwa-local/$f
+done > patches/pwa-local.patch
+```
+
+O `gerar-patch-local.py` faz cada troca de forma exata e avisa qual trecho do PWA mudou.
+
+### Uso
 
 **Acesso:** só o PIN do cofre. Não há conta, e-mail nem casa compartilhada: cada celular tem a sua casa.
 
 **Backup:** em *Casa → Backup*. *Exportar* gera um arquivo cifrado em `Documentos/FinancasCasa/` (dá para enviar ao Drive, e-mail etc.). *Restaurar* (também na tela de criar a casa, num celular novo) pede o arquivo e as **12 palavras**, a hash ou o código de recuperação da casa. Sem elas o arquivo não abre.
 
-**Testes:** o fluxo inteiro (criar PIN, criar a casa, lançar, reabrir, exportar, restaurar num banco vazio, recusar palavras erradas) foi testado no Chrome com um SQLite real simulando o plugin nativo. A rodada no aparelho é a validação final.
+**Testes:** o fluxo inteiro (criar PIN, criar a casa, lançar, reabrir, exportar, restaurar num banco vazio, recusar palavras erradas) foi testado no Chrome com um SQLite real simulando o plugin nativo, e com o armazenamento do navegador conferido vazio no fim. A rodada no aparelho é a validação final.
 
 ## Outras diferenças em relação ao PWA
 
 | Item | Comportamento no APK |
 | --- | --- |
 | Biometria (WebAuthn PRF) | O WebView do Android não oferece PRF: o cofre fica **só com o PIN**. Biometria nativa exige um plugin (BiometricPrompt + Keystore). |
-| Recarregar a página | Pede o PIN de novo (a sessão fica só na memória, nada vai para o armazenamento). |
+| Reabrir o app | Pede o PIN de novo (a sessão fica só na memória). |
 | Rede | A CSP só permite o próprio app (`'self'`): o app não fala com nenhum servidor. |
 | Instalar / Service Worker | O botão "Instalar" do PWA não aparece (já é app). Service worker desligado. |
 | Web (HOM/PRD) | Não muda: continua com Firebase. |

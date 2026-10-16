@@ -1,13 +1,13 @@
-/* Copia o PWA (fonte única: ../stk-desp-firebase-google/src) para www/ e liga o MODO LOCAL do APK.
-   O repositório do PWA não muda: os ajustes são feitos só na cópia, aqui.
-   - local/ vai para www/fb-local/ (SQLite nativo no lugar do Firebase e do armazenamento do navegador);
-   - js/app.js passa a importar o "Firebase" de /fb-local/ em vez do gstatic;
-   - index.html carrega primeiro o fb-local/boot.js, que abre o SQLite e depois carrega os scripts do PWA;
-   - a CSP deixa de liberar domínios do Google: o app não fala com nenhum servidor.
-   componentes.html (vitrine de desenvolvimento) e sw.js (service worker, desligado no APK) não vão para o app. */
-import { cpSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+/* Monta www/ com a EDIÇÃO LOCAL do app: SQLite no aparelho, sem Firebase e sem armazenamento do navegador.
+   1. copia o PWA (fonte: ../stk-desp-firebase-google/src), sem componentes.html (vitrine) nem sw.js (service worker);
+   2. aplica patches/pwa-local.patch (tira login, convites, duas etapas, config do Firebase e armazenamento do navegador);
+   3. copia local/ para www/local/ (boot.js abre o SQLite; dados.js, acesso.js e backup.js).
+   O repositório do PWA não muda. Se o PWA mudou e o patch não encaixa, o build para:
+   regenere com "python3 scripts/gerar-patch-local.py" (veja o README). */
+import { cpSync, rmSync, existsSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 const origem = join(raiz, '..', 'stk-desp-firebase-google', 'src');
@@ -20,29 +20,30 @@ if (!existsSync(join(origem, 'index.html'))) {
 }
 rmSync(destino, { recursive: true, force: true });
 cpSync(origem, destino, { recursive: true, filter: f => !FORA.has(basename(f)) && !basename(f).startsWith('.') });
-cpSync(join(raiz, 'local'), join(destino, 'fb-local'), { recursive: true });
 
-// Troca exata de um trecho; se o PWA mudou e o trecho sumiu, para o build em vez de gerar um app quebrado.
-function trocar(arquivo, de, para, rotulo) {
-  const p = join(destino, arquivo), txt = readFileSync(p, 'utf8');
-  const novo = typeof de === 'string' ? txt.replace(de, () => para) : txt.replace(de, para);
-  if (novo === txt) { console.error(`Modo local: não achei ${rotulo} em ${arquivo}. O PWA mudou; ajuste scripts/copiar-web.mjs.`); process.exit(1); }
-  writeFileSync(p, novo);
+try {
+  execFileSync('git', ['apply', '--whitespace=nowarn', join(raiz, 'patches', 'pwa-local.patch')], { cwd: destino, stdio: 'inherit' });
+} catch {
+  console.error('O patch da edição local não encaixou: o PWA mudou. Regenere patches/pwa-local.patch (README → Atualizar o PWA).');
+  process.exit(1);
 }
+for (const f of readdirSync(join(raiz, 'local'))) cpSync(join(raiz, 'local', f), join(destino, 'local', f));
 
-trocar('js/app.js', /const FB = 'https:\/\/www\.gstatic\.com\/firebasejs\/[^']+';/, "const FB = '/fb-local/'; // modo local do APK (copiar-web.mjs)", 'a URL do Firebase');
-
-const html = readFileSync(join(destino, 'index.html'), 'utf8');
-const tags = [...html.matchAll(/<script\b([^>]*)\bsrc="([^"]+)"[^>]*><\/script>\s*/g)];
-if (!tags.length) { console.error('Modo local: nenhum <script src> no index.html.'); process.exit(1); }
-const scripts = tags.map(t => ({ src: t[2], module: /type="module"/.test(t[1]) }));
-let semScripts = html;
-for (const t of tags) semScripts = semScripts.replace(t[0], '');
-const boot = `<script src="fb-local/boot.js" data-scripts='${JSON.stringify(scripts)}'></script>\n`;
-writeFileSync(join(destino, 'index.html'), semScripts.replace('</head>', boot + '</head>'));
-trocar('index.html', /<meta http-equiv="Content-Security-Policy" content="[^"]*">/,
-  `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'">`, 'a CSP');
+// Garantia: nada de Firebase nem de armazenamento do navegador no app montado.
+const proibido = /firebase|gstatic|\blocalStorage\b|\bsessionStorage\b|\bindexedDB\b|serviceWorker/i;
+const achados = [];
+(function varrer(dir) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    if (e.isDirectory()) varrer(p);
+    else if (/\.(js|html)$/.test(e.name)) readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
+      const codigo = l.replace(/\/\/.*$|\/\*.*?\*\/|^\s*\*.*$/g, ''); // ignora comentários de linha
+      if (proibido.test(codigo)) achados.push(`${p.slice(destino.length + 1)}:${i + 1}: ${l.trim().slice(0, 100)}`);
+    });
+  }
+})(destino);
+if (achados.length) { console.error('Sobrou Firebase ou armazenamento do navegador:\n' + achados.join('\n')); process.exit(1); }
 
 const versao = readFileSync(join(origem, 'index.html'), 'utf8').match(/data-vault-version="([^"]+)"/)?.[1] || '?';
-writeFileSync(join(destino, 'ORIGEM.txt'), `Cópia de stk-desp-firebase-google/src (versão ${versao}) com o modo local do APK (SQLite, sem Firebase).\nNão edite aqui: edite o PWA ou local/ e rode "npm run web".\n`);
-console.log(`www/ atualizado a partir do PWA ${versao} · modo local (SQLite)`);
+writeFileSync(join(destino, 'ORIGEM.txt'), `Edição local (SQLite) do PWA stk-desp-firebase-google/src, versão ${versao}.\nNão edite aqui: edite local/ ou o patch e rode "npm run web".\n`);
+console.log(`www/ montado: PWA ${versao} · edição local (SQLite)`);

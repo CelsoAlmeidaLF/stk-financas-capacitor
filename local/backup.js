@@ -1,10 +1,9 @@
-/* Modo local do APK: ajustes de tela e backup cifrado. Carregado pelo fb-local/firebase-app.js.
-   - Esconde o que só existe com servidor: convites, duas etapas, e-mail, senha, "Sair da conta", atualização do cache.
-   - Backup: exporta os dados da casa num arquivo cifrado com a chave da casa (AES-256-GCM). Para restaurar,
-     o arquivo só abre com as 12 palavras, a hash ou o código de recuperação da casa. */
+/* Edição local do APK: backup cifrado e gravação de arquivos (carregado pelo app.js depois do PIN).
+   Exportar: gera um arquivo com os dados da casa, cifrado com a chave da casa (AES-256-GCM), em Documentos/FinancasCasa.
+   Restaurar: o arquivo só abre com as 12 palavras, a hash ou o código de recuperação da casa. */
 import * as C from '../js/cripto-casa.js';
 
-const L = window.__stkLocal;
+const L = window.stkLocal;
 const FORMATO = 'financas-casa-backup', VERSAO = 1;
 const $ = id => document.getElementById(id);
 const plugin = nome => window.Capacitor?.Plugins?.[nome] || window.Capacitor?.registerPlugin?.(nome);
@@ -19,10 +18,9 @@ const ICO = {
   eyeOff: svg('<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c4.97 0 8.58 3.33 9.94 6.65a1 1 0 0 1 0 .7 10.75 10.75 0 0 1-1.44 2.49"/><path d="M14.08 14.16a3 3 0 0 1-4.24-4.24"/><path d="M17.48 17.5A10.75 10.75 0 0 1 2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 4.45-5.14"/><path d="m2 2 20 20"/>')
 };
 
-/* ---------- estilo: esconde o que não existe sem servidor ---------- */
+/* ---------- estilo das caixas de diálogo ---------- */
 const css = document.createElement('style');
 css.textContent = `
-  #adminPessoas, [data-logout], [data-logout] + .note, #cfgOpen { display: none !important; }
   .stk-local-dlg { border: 0; padding: 0; background: transparent; max-width: min(520px, calc(100vw - 32px)); width: 100%; color: inherit; }
   .stk-local-dlg::backdrop { background: rgba(0, 0, 0, .55); backdrop-filter: blur(4px); }
   .stk-local-dlg .glass { display: grid; gap: 12px; }
@@ -34,25 +32,6 @@ css.textContent = `
   .stk-senha button { position: absolute; right: 6px; bottom: 6px; width: 40px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: inherit; display: grid; place-items: center; cursor: pointer; }
   .stk-local-dlg input[type=file] { width: 100%; }`;
 document.head.append(css);
-
-/* ---------- textos e linhas que dependem do servidor ---------- */
-const FORA = /^(Duas etapas|E-mail|Senha da conta|Atualização|Instalar no celular)/;
-function ajustarListas() {
-  for (const id of ['seguranca', 'appInfo']) {
-    const lista = $(id); if (!lista) continue;
-    for (const linha of lista.querySelectorAll('.setting')) {
-      const t = linha.querySelector('.t b')?.textContent.trim() || '', small = linha.querySelector('.t small');
-      if (FORA.test(t)) linha.remove();
-      else if (t === 'Criptografia' && small) mudarTexto(small, 'AES-256. Os dados ficam cifrados no banco SQLite deste aparelho.');
-      else if (t === 'Versão' && small) mudarTexto(small, small.textContent.replace(/ · (projeto|modo local).*$/, '') + ' · modo local (SQLite)');
-    }
-  }
-  const ilha = $('islandD');
-  if (ilha && /sincroniz/i.test(ilha.textContent)) mudarTexto(ilha, 'Tudo salvo e cifrado neste aparelho.');
-}
-// Só escreve se mudou: escrever sempre dispararia o MutationObserver de novo, em loop.
-function mudarTexto(el, t) { if (el.textContent !== t) el.textContent = t; }
-new MutationObserver(ajustarListas).observe(document.body, { childList: true, subtree: true, characterData: true });
 
 /* ---------- caixa de diálogo ---------- */
 function dialogo(html) {
@@ -87,7 +66,8 @@ async function gerarBackup() {
   const payload = await C.selar(await C.chaveDados(dek), lista, ctxBackup(casaId));
   return { formato: FORMATO, versao: VERSAO, criadoEm: new Date().toISOString(), casaId, selo: casa.cripto?.selo || '', cripto: casa.cripto, registros: lista.length, payload };
 }
-async function salvarArquivo(nome, texto) {
+// Também usada pelo app (certificado do administrador): no Android não há download de arquivo pelo navegador.
+export async function salvarArquivo(nome, texto) {
   if (L.nativo) {
     const FS = plugin('Filesystem');
     try {
@@ -157,7 +137,7 @@ function restaurar() {
     b.disabled = true; msg(d, 'Abrindo o backup… (pode levar alguns segundos)');
     try {
       const { casaId, dek, lista } = await abrirBackup(arquivo, entrada);
-      await L.substituirTudo(lista, [...L.kv.entries()]);
+      await L.substituirDocs(lista);
       window.secureStorage?.setItem('dek:' + casaId, dek);   // a chave da casa fica no cofre do PIN deste aparelho
       await L.fila();
       msg(d, `${lista.length} registros restaurados. Abrindo…`, 'ok');
@@ -189,4 +169,5 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-stk-exportar]')) exportar();
   else if (e.target.closest('[data-stk-restaurar]')) restaurar();
 });
-injetar(); ajustarListas();
+window.stkSalvarArquivo = salvarArquivo;
+injetar();
