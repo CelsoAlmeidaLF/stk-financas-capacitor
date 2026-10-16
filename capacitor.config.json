@@ -1,0 +1,13 @@
+{
+  "appId": "br.com.systekna.financascasa.cap",
+  "appName": "Finanças da Casa",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https",
+    "hostname": "localhost"
+  }
+}

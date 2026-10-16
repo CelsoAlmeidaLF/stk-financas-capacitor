@@ -1,0 +1,26 @@
+# Dependências
+node_modules/
+
+# Projeto Android gerado pelo "npx cap add android"
+android/
+
+# Cópia do PWA (repo privado financas-casa): gerada por "npm run web", não vai para o git
+www/
+
+# Builds e artefatos
+*.apk
+*.aab
+dist/
+
+# Logs e temporários
+*.log
+npm-debug.log*
+.env
+.env.*
+
+# Editores e sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
