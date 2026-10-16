@@ -3,8 +3,10 @@
   "version": "2.6.3",
   "private": true,
   "type": "module",
-  "description": "Piloto: Finanças da Casa (PWA) empacotado como app Android com Capacitor.",
-  "engines": { "node": ">=22" },
+  "description": "Finanças da Casa (PWA) empacotado como app Android com Capacitor, em modo local: SQLite no aparelho, sem Firebase.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "web": "node scripts/copiar-web.mjs",
     "sync": "npm run web && cap sync android",
@@ -13,7 +15,10 @@
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
-    "@capacitor/core": "8.5.3"
+    "@capacitor/core": "8.5.3",
+    "@capacitor-community/sqlite": "8.1.1",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.3"

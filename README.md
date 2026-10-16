@@ -1,6 +1,6 @@
-# Finanças da Casa · piloto Capacitor
+# Finanças da Casa · app Android (Capacitor, modo local)
 
-O PWA `../stk-desp-firebase-google/src` (v2.6.3) empacotado como app Android, **sem mudar uma linha do PWA**.
+O PWA `../stk-desp-firebase-google/src` (v2.6.3) empacotado como app Android em **modo local**: os dados ficam num banco **SQLite** no próprio celular, sem Firebase, sem internet e sem armazenamento do navegador. O repositório do PWA não muda: o modo local é montado na cópia (`www/`) pelo `scripts/copiar-web.mjs`.
 
 ## Baixar o APK no celular
 
@@ -15,7 +15,7 @@ O APK é assinado com a chave de release da Systekna (certificado `CN=Celso de A
 Tudo roda na máquina local; o repositório guarda o código e publica o APK em Releases.
 
 ```bash
-npm run web          # copia o PWA para www/ (sem componentes.html); rode a cada versão nova do PWA
+npm run web          # copia o PWA para www/ e liga o modo local; rode a cada versão nova do PWA
 npm run sync         # web + cap sync android
 npm run apk          # build completo: dist/financas-casa-capacitor.apk
 scripts/publicar-apk.sh v2.6.4   # cria a Release e atualiza a página de download (precisa do gh logado)
@@ -29,20 +29,36 @@ Requisitos: Node 22+ (o script usa o `nvm` se houver), JDK 21, a chave de assina
 
 `scripts/build-apk.sh` compila o release e assina com `~/.android-keys/systekna-release.jks` (alias `systekna`, senha em `~/.android-keys/systekna-release.pass`). Outros caminhos: `STK_KEYSTORE` e `STK_KEYPASS_FILE`. A chave nunca entra no git. **Sem ela não dá para publicar atualizações**: os aparelhos recusam um APK assinado com outra chave.
 
-## Antes de testar
+## Modo local (SQLite)
 
-- **Use um projeto Firebase de teste.** HOM e PRD usam o mesmo Firestore com dados reais. Na tela de login → "Projeto Firebase" → cole o `firebaseConfig` do projeto de teste (fica salvo só no aparelho).
-- No projeto de teste, ligue E-mail/senha no Authentication. O app roda em `https://localhost`, que já vem nos domínios autorizados.
+| Onde | O que guarda |
+| --- | --- |
+| Tabela `docs` | Os dados da casa (lançamentos, compras, cartões, dívidas, investimentos, metas), **cifrados com a chave da casa** (AES-256-GCM), como no PWA. |
+| Tabela `kv` | O que o PWA guardava no `localStorage`: cofre do PIN, chave da casa (protegida pelo PIN) e preferências. |
 
-## O que muda no app em relação ao PWA
+O arquivo do banco fica na pasta privada do app no celular (`databases/financas-casaSQLite.db`, plugin `@capacitor-community/sqlite`). Desinstalar o app ou limpar os dados dele apaga o banco: por isso existe o backup.
+
+Como funciona, em `local/` (vai para `www/fb-local/`):
+
+- `boot.js`: primeiro script da página. Abre o SQLite, carrega para a memória e troca `localStorage` (SQLite), `sessionStorage` (só memória), IndexedDB, Cache Storage e service worker (desligados). Depois carrega os scripts do PWA.
+- `firebase-firestore.js`, `firebase-auth.js`, `firebase-app.js`: mesma API do Firebase que o `app.js` usa, sem servidor. O `app.js` importa daqui (a URL do `gstatic` é trocada na cópia).
+- `modo-local.js`: esconde o que só existe com servidor (convites, duas etapas, e-mail, senha, sair da conta) e cria o **backup**.
+
+**Acesso:** só o PIN do cofre. Não há conta, e-mail nem casa compartilhada: cada celular tem a sua casa.
+
+**Backup:** em *Casa → Backup*. *Exportar* gera um arquivo cifrado em `Documentos/FinancasCasa/` (dá para enviar ao Drive, e-mail etc.). *Restaurar* (também na tela de criar a casa, num celular novo) pede o arquivo e as **12 palavras**, a hash ou o código de recuperação da casa. Sem elas o arquivo não abre.
+
+**Testes:** o fluxo inteiro (criar PIN, criar a casa, lançar, reabrir, exportar, restaurar num banco vazio, recusar palavras erradas) foi testado no Chrome com um SQLite real simulando o plugin nativo. A rodada no aparelho é a validação final.
+
+## Outras diferenças em relação ao PWA
 
 | Item | Comportamento no APK |
 | --- | --- |
-| Biometria (WebAuthn PRF) | O WebView do Android não oferece PRF: o cofre detecta e fica **só com o PIN**. Biometria nativa exige um plugin (BiometricPrompt + Keystore). |
-| Offline | As telas abrem offline, mas o SDK do Firebase vem do `gstatic` (CDN): sem rede, não há login nem dados. Para offline total, empacotar o SDK no `www/`. |
-| Cabeçalhos de segurança | Os do `firebase.json` (HSTS, X-Frame-Options) não se aplicam; a CSP do `<meta>` continua valendo. |
-| Plugins Capacitor | A CSP (`script-src 'self'`) deve bloquear o script inline que o Capacitor injeta na página (confirmar no primeiro APK, pelo console do WebView). Hoje o app não usa plugin; para usar um, ajuste a CSP. |
-| Instalar / Service Worker | O botão "Instalar" do PWA não aparece (já é app). O service worker continua registrado e funciona como cache. |
+| Biometria (WebAuthn PRF) | O WebView do Android não oferece PRF: o cofre fica **só com o PIN**. Biometria nativa exige um plugin (BiometricPrompt + Keystore). |
+| Recarregar a página | Pede o PIN de novo (a sessão fica só na memória, nada vai para o armazenamento). |
+| Rede | A CSP só permite o próprio app (`'self'`): o app não fala com nenhum servidor. |
+| Instalar / Service Worker | O botão "Instalar" do PWA não aparece (já é app). Service worker desligado. |
+| Web (HOM/PRD) | Não muda: continua com Firebase. |
 
 ## Licença
 
