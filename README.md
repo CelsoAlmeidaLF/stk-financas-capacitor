@@ -7,13 +7,13 @@ npm run web      # copia o PWA para www/ (sem componentes.html); rode a cada ver
 npm run sync     # web + cap sync android (precisa Node 22+)
 ```
 
-O APK sai pelo GitHub Actions (`.github/workflows/build-apk.yml`, artefato `financas-casa-capacitor-apk`), porque a máquina local não tem Android SDK e o Capacitor 8 pede Node 22+.
+O APK sai pelo GitHub Actions do repo **privado** `financas-casa` (workflow `apk-capacitor.yml`, artefato `financas-casa-capacitor-apk`), porque a máquina local não tem Android SDK e o Capacitor 8 pede Node 22+.
 
 ### `www/` fora do git
 
 O PWA vem do repositório privado `financas-casa`, então `www/` não é versionado aqui. Local: `npm run web` gera a pasta a partir de `../stk-desp-firebase-google/src`.
 
-> **Pendente:** o workflow ainda espera o `www/` no repositório, então o build do APK no Actions falha até ele saber de onde tirar o PWA.
+O build roda no repo privado porque o APK leva o PWA inteiro: num repo público, o artefato poderia ser baixado por qualquer pessoa. Lá, o workflow baixa este repo (público, sem token), roda `npm run web` e compila. Ele dispara a cada push em `src/` do PWA ou manualmente (*Actions → APK · Capacitor → Run workflow*). Mudou só este repo? Rode manualmente.
 
 ## Antes de testar
 
