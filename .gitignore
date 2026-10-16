@@ -24,3 +24,8 @@ npm-debug.log*
 *.iml
 .DS_Store
 Thumbs.db
+
+# Chaves de assinatura (ficam em ~/.android-keys, nunca no git)
+*.jks
+*.keystore
+*.pass

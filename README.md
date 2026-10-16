@@ -6,7 +6,7 @@ O PWA `../stk-desp-firebase-google/src` (v2.6.3) empacotado como app Android, **
 
 **[Baixar a última versão](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases/latest/download/financas-casa-capacitor.apk)**: abra este link no navegador do Android, baixe e toque no arquivo. Na primeira vez, o Android pede para permitir a instalação de apps de fontes desconhecidas. Versões anteriores ficam em [Releases](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases).
 
-O APK é de teste (build debug), assinado com a chave de debug da máquina de build: as atualizações instalam por cima enquanto forem geradas na mesma máquina.
+O APK é assinado com a chave de release da Systekna (certificado `CN=Celso de Almeida Leite F, O=Systekna, C=BR`, SHA-256 `1b21a6ac…5e72de236`). As atualizações instalam por cima da versão anterior. Quem instalou um APK de debug antigo precisa desinstalá-lo uma vez antes.
 
 ## Desenvolvimento e build (local)
 
@@ -19,9 +19,13 @@ npm run apk          # build completo: dist/financas-casa-capacitor.apk
 scripts/publicar-apk.sh v2.6.3   # cria a Release com o APK (precisa do gh logado)
 ```
 
-Requisitos: Node 22+ (o script usa o `nvm` se houver), JDK 21 e Android SDK em `~/Android/Sdk` (ou `ANDROID_HOME`), com `platforms;android-36` e `build-tools;36.0.0`.
+Requisitos: Node 22+ (o script usa o `nvm` se houver), JDK 21, a chave de assinatura e Android SDK em `~/Android/Sdk` (ou `ANDROID_HOME`), com `platforms;android-36` e `build-tools;36.0.0`.
 
 `www/` e `android/` não são versionados: o PWA vem de `../stk-desp-firebase-google/src` (repo privado `financas-casa`) e o projeto Android é gerado pelo Capacitor.
+
+### Chave de assinatura
+
+`scripts/build-apk.sh` compila o release e assina com `~/.android-keys/systekna-release.jks` (alias `systekna`, senha em `~/.android-keys/systekna-release.pass`). Outros caminhos: `STK_KEYSTORE` e `STK_KEYPASS_FILE`. A chave nunca entra no git. **Sem ela não dá para publicar atualizações**: os aparelhos recusam um APK assinado com outra chave.
 
 ## Antes de testar
 

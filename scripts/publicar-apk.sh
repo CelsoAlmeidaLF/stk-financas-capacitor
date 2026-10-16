@@ -8,5 +8,5 @@ VERSAO="${1:?informe a versão, ex.: v0.1.0}"
 APK="dist/financas-casa-capacitor.apk"
 [ -f "$APK" ] || { echo "Falta $APK: rode scripts/build-apk.sh"; exit 1; }
 gh release create "$VERSAO" "$APK" -R CelsoAlmeidaLF/stk-financas-capacitor \
-  --title "$VERSAO" --notes "APK de teste (debug). Baixe e abra no celular: o Android pede para permitir a instalação de fontes desconhecidas." --latest
+  --title "$VERSAO" --notes "APK assinado com a chave de release da Systekna. Baixe e abra no celular: o Android pede para permitir a instalação de fontes desconhecidas." --latest
 echo "Link: https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases/latest/download/financas-casa-capacitor.apk"
