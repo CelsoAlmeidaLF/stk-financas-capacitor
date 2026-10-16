@@ -6,7 +6,7 @@ O PWA `../stk-desp-firebase-google/src` (v2.6.3) empacotado como app Android, **
 
 Página de download dos dois apps (com QR code para abrir no celular): **https://celsoalmeidalf.github.io/stk-financas-android/**
 
-**[Baixar a última versão](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases/latest/download/financas-casa-capacitor.apk)**: abra este link no navegador do Android, baixe e toque no arquivo. Na primeira vez, o Android pede para permitir a instalação de apps de fontes desconhecidas. Versões anteriores ficam em [Releases](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases).
+**[Baixar a última versão pelo GitHub](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases/latest/download/financas-casa-capacitor.apk)**: abra este link no navegador do Android, baixe e toque no arquivo. Na primeira vez, o Android pede para permitir a instalação de apps de fontes desconhecidas. Versões anteriores ficam em [Releases](https://github.com/CelsoAlmeidaLF/stk-financas-capacitor/releases).
 
 O APK é assinado com a chave de release da Systekna (certificado `CN=Celso de Almeida Leite F, O=Systekna, C=BR`, SHA-256 `1b21a6ac…5e72de236`). As atualizações instalam por cima da versão anterior. Quem instalou um APK de debug antigo precisa desinstalá-lo uma vez antes.
 
@@ -18,7 +18,7 @@ Tudo roda na máquina local; o repositório guarda o código e publica o APK em 
 npm run web          # copia o PWA para www/ (sem componentes.html); rode a cada versão nova do PWA
 npm run sync         # web + cap sync android
 npm run apk          # build completo: dist/financas-casa-capacitor.apk
-scripts/publicar-apk.sh v2.6.3   # cria a Release com o APK (precisa do gh logado)
+scripts/publicar-apk.sh v2.6.4   # cria a Release e atualiza a página de download (precisa do gh logado)
 ```
 
 Requisitos: Node 22+ (o script usa o `nvm` se houver), JDK 21, a chave de assinatura e Android SDK em `~/Android/Sdk` (ou `ANDROID_HOME`), com `platforms;android-36` e `build-tools;36.0.0`.
